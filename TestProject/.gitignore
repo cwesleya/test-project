@@ -48,3 +48,5 @@ jspm_packages/
 # Ignore package-lock and yarn.lock
 package-lock.json
 yarn.lock
+
+.DS_Store
