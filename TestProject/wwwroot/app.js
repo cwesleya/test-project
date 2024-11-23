@@ -4,34 +4,32 @@ const BROWSE_ENDPOINT = `${API_BASE_URL}/browse`;
 const SEARCH_ENDPOINT = `${API_BASE_URL}/search`;
 const FILE_BROWSER_ID = 'file-browser';
 const SEARCH_INPUT_ID = 'search';
+const DEFAULT_PAGE_SIZE = 25;
 
-// document.addEventListener('DOMContentLoaded', () => {
-//     browseDirectory();
-// });
+/*
+examples:
+browseDirectory('', 1, 0); // Fetch all directories and files
+searchFiles(1, 0); // Fetch all search results
+pageSize = 0 means fetch all results
+*/
 
-function browseDirectory(path = '') {
-    let url = BROWSE_ENDPOINT;
-    if (path) {
-        url += `?path=${encodeURIComponent(path)}`;
-    }
+function browseDirectory(path = '', page = 1, pageSize = DEFAULT_PAGE_SIZE) {
+    const url = `${BROWSE_ENDPOINT}?page=${page}&pageSize=${pageSize}`;
 
-    fetch(url)
+    fetch(url + (path ? `&path=${encodeURIComponent(path)}` : ''))
         .then(handleResponse)
         .then(displayDirectoryContents)
         .catch(handleError);
 }
 
-function searchFiles() {
+function searchFiles(page = 1, pageSize = DEFAULT_PAGE_SIZE) {
     const query = document.getElementById(SEARCH_INPUT_ID).value.trim();
-    if (query === '') {
-        // If the search input is empty or contains only whitespace, browse the root directory
-        browseDirectory();
-    } else {
-        fetch(`${SEARCH_ENDPOINT}?query=${encodeURIComponent(query)}`)
-            .then(handleResponse)
-            .then(displaySearchResults)
-            .catch(handleError);
-    }
+    let url = `${SEARCH_ENDPOINT}?page=${page}&pageSize=${pageSize}`;
+
+    fetch(url + (query ? `&query=${encodeURIComponent(query)}` : ''))
+        .then(handleResponse)
+        .then(displaySearchResults)
+        .catch(handleError);
 }
 
 function handleResponse(response) {
@@ -49,7 +47,7 @@ function displayDirectoryContents(data) {
     const headerRow = document.createElement('tr');
     headerRow.innerHTML = '<th>Name</th><th>Type</th><th>Size</th>';
     table.appendChild(headerRow);
-
+    
     if (data.directories) {
         data.directories.forEach(dir => {
             const row = document.createElement('tr');

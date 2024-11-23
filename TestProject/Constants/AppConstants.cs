@@ -20,5 +20,6 @@ namespace TestProject.Constants
 
         // Miscellaneous
         public const string DefaultContentType = "application/octet-stream";
+        public const int DefaultPageSize = 25;
     }
 }
