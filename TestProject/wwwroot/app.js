@@ -13,16 +13,21 @@ searchFiles(1, 0); // Fetch all search results
 pageSize = 0 means fetch all results
 */
 
-/* option to call api on pageload
-document.addEventListener('DOMContentLoaded', () => {
-    handleNavigation();
-});
-*/
+// option to call api on pageload
+// document.addEventListener('DOMContentLoaded', () => {
+//     handleNavigation(); 
+// });
 
+/**
+ * Handles the browser's back and forward navigation.
+ */
 window.addEventListener('popstate', () => {
     handleNavigation();
 });
 
+/**
+ * Reads the current URL parameters and updates the application state accordingly.
+ */
 function handleNavigation() {
     const urlParams = new URLSearchParams(window.location.search);
     const path = urlParams.get('path') || '';
@@ -37,6 +42,10 @@ function handleNavigation() {
     }
 }
 
+/**
+ * Updates the URL with the given parameters.
+ * @param {Object} params - The parameters to update in the URL.
+ */
 function updateURL(params) {
     const url = new URL(window.location);
     Object.keys(params).forEach(key => {
@@ -49,6 +58,12 @@ function updateURL(params) {
     window.history.pushState({}, '', url);
 }
 
+/**
+ * Fetches and displays the contents of the specified directory.
+ * @param {string} [path=''] - The path of the directory to browse.
+ * @param {number} [page=1] - The page number for pagination.
+ * @param {number} [pageSize=DEFAULT_PAGE_SIZE] - The number of items per page.
+ */
 function browseDirectory(path = '', page = 1, pageSize = DEFAULT_PAGE_SIZE) {
     updateURL({ path, page, pageSize });
 
@@ -63,7 +78,12 @@ function browseDirectory(path = '', page = 1, pageSize = DEFAULT_PAGE_SIZE) {
         .catch(handleError);
 }
 
-// NOTE: directory will be returned if it has a file containing the search query
+/**
+ * Searches for files matching the query and displays the results.
+ * @param {string} query - The search query.
+ * @param {number} [page=1] - The page number for pagination.
+ * @param {number} [pageSize=DEFAULT_PAGE_SIZE] - The number of items per page.
+ */
 function searchFiles(query, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
     if (query) {
         updateURL({ query, page, pageSize });
@@ -80,6 +100,12 @@ function searchFiles(query, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
     }
 }
 
+/**
+ * Handles the response from the fetch call.
+ * @param {Response} response - The response from the fetch call.
+ * @returns {Promise<Object>} The JSON data from the response.
+ * @throws {Error} If the response is not OK.
+ */
 function handleResponse(response) {
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -87,6 +113,10 @@ function handleResponse(response) {
     return response.json();
 }
 
+/**
+ * Displays the contents of the directory.
+ * @param {Object} data - The data containing directories and files.
+ */
 function displayDirectoryContents(data) {
     const fileBrowser = document.getElementById(FILE_BROWSER_ID);
     fileBrowser.innerHTML = '';
@@ -116,6 +146,10 @@ function displayDirectoryContents(data) {
     fileBrowser.appendChild(table);
 }
 
+/**
+ * Displays the search results.
+ * @param {Array<Object>} data - The data containing the search results.
+ */
 function displaySearchResults(data) {
     const fileBrowser = document.getElementById(FILE_BROWSER_ID);
     fileBrowser.innerHTML = '';
@@ -134,6 +168,10 @@ function displaySearchResults(data) {
     fileBrowser.appendChild(table);
 }
 
+/**
+ * Handles errors from the fetch call.
+ * @param {Error} error - The error object.
+ */
 function handleError(error) {
     console.error('Error:', error);
 }
