@@ -7,26 +7,55 @@ const SEARCH_INPUT_ID = 'search';
 const DEFAULT_PAGE_SIZE = 25;
 
 /*
-examples:
+paging examples:
 browseDirectory('', 1, 0); // Fetch all directories and files
 searchFiles(1, 0); // Fetch all search results
 pageSize = 0 means fetch all results
 */
 
-function browseDirectory(path = '', page = 1, pageSize = DEFAULT_PAGE_SIZE) {
-    const url = `${BROWSE_ENDPOINT}?page=${page}&pageSize=${pageSize}`;
+/* option to call api on pageload
+document.addEventListener('DOMContentLoaded', () => {
 
-    fetch(url + (path ? `&path=${encodeURIComponent(path)}` : ''))
+    const urlParams = new URLSearchParams(window.location.search);
+    const path = urlParams.get('path') || '';
+    const query = urlParams.get('query') || '';
+    const page = parseInt(urlParams.get('page')) || 1;
+    const pageSize = parseInt(urlParams.get('pageSize')) || DEFAULT_PAGE_SIZE;
+
+    if (query) {
+        searchFiles(query, page, pageSize);
+    } else {
+        browseDirectory(path, page, pageSize);
+    }
+});
+*/
+
+function updateURL(params) {
+    const url = new URL(window.location);
+    Object.keys(params).forEach(key => url.searchParams.set(key, params[key]));
+    window.history.pushState({}, '', url);
+}
+
+function browseDirectory(path = '', page = 1, pageSize = DEFAULT_PAGE_SIZE) {
+    updateURL({ path, page, pageSize });
+
+    let url = `${BROWSE_ENDPOINT}?page=${page}&pageSize=${pageSize}`;
+    if (path) {
+        url += `&path=${encodeURIComponent(path)}`;
+    }
+
+    fetch(url)
         .then(handleResponse)
         .then(displayDirectoryContents)
         .catch(handleError);
 }
 
-function searchFiles(page = 1, pageSize = DEFAULT_PAGE_SIZE) {
-    const query = document.getElementById(SEARCH_INPUT_ID).value.trim();
-    let url = `${SEARCH_ENDPOINT}?page=${page}&pageSize=${pageSize}`;
+function searchFiles(query, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
+    updateURL({ query, page, pageSize });
 
-    fetch(url + (query ? `&query=${encodeURIComponent(query)}` : ''))
+    let url = `${SEARCH_ENDPOINT}?query=${encodeURIComponent(query)}&page=${page}&pageSize=${pageSize}`;
+
+    fetch(url)
         .then(handleResponse)
         .then(displaySearchResults)
         .catch(handleError);
@@ -47,12 +76,12 @@ function displayDirectoryContents(data) {
     const headerRow = document.createElement('tr');
     headerRow.innerHTML = '<th>Name</th><th>Type</th><th>Size</th>';
     table.appendChild(headerRow);
-    
+
     if (data.directories) {
         data.directories.forEach(dir => {
             const row = document.createElement('tr');
             row.innerHTML = `<td>${dir.name}</td><td>Directory</td><td>-</td>`;
-            row.onclick = () => browseDirectory(`${path}/${dir.name}`);
+            row.onclick = () => browseDirectory(`${dir.path}`);
             table.appendChild(row);
         });
     }
