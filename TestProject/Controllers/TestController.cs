@@ -53,7 +53,7 @@ namespace TestProject.Controllers
 
         [HttpGet(AppConstants.SearchEndpoint)]
         public IActionResult Search(
-            [FromQuery] string query, 
+            [FromQuery] string? query, 
             [FromQuery] int page = 1, 
             [FromQuery] int pageSize = AppConstants.DefaultPageSize)
         {
