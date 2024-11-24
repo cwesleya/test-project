@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using System;
 using System.IO;
 using System.Linq;
 using TestProject.Constants;
@@ -13,31 +15,37 @@ namespace TestProject.Controllers
     public class TestController : ControllerBase
     {
         private readonly string _homeDirectory;
+        private readonly ILogger<TestController> _logger;
 
-        public TestController(IConfiguration configuration)
+        public TestController(IConfiguration configuration, ILogger<TestController> logger)
         {
-            _homeDirectory = configuration[AppConstants.DefaultRootDirectoryKey] ?? Directory.GetCurrentDirectory();
+            var configuredHomeDirectory = configuration[AppConstants.DefaultRootDirectoryKey] ?? "/app";
+            _homeDirectory = ExpandHomeDirectory(configuredHomeDirectory);
+            _logger = logger;
+        }
+
+        private string ExpandHomeDirectory(string path)
+        {
+            if (path.StartsWith("~"))
+            {
+                var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                path = Path.Combine(homeDirectory, path.TrimStart('~', '/'));
+            }
+            return path;
         }
 
         [HttpGet(AppConstants.BrowseEndpoint)]
-        public IActionResult Browse(
-            [FromQuery] string? path = "", 
-            [FromQuery] int page = 1, 
-            [FromQuery] int pageSize = AppConstants.DefaultPageSize)
+        public IActionResult Browse([FromQuery] string? path = "", [FromQuery] int page = 1, [FromQuery] int pageSize = AppConstants.DefaultPageSize)
         {
             var fullPath = Path.Combine(_homeDirectory, path ?? string.Empty);
 
             if (!Directory.Exists(fullPath))
             {
-                return NotFound(AppConstants.DirectoryNotFoundMessage);
+                return NotFound(AppConstants.DirectoryNotFound);
             }
 
-            var directoriesQuery = Directory
-                .EnumerateDirectories(fullPath)
-                .Select(d => new DirectoryItem(new DirectoryInfo(d).Name, d));
-            var filesQuery = Directory
-                .EnumerateFiles(fullPath)
-                .Select(f => new FileItem(new FileInfo(f).Name, f, new FileInfo(f).Length));
+            var directoriesQuery = Directory.EnumerateDirectories(fullPath).Select(d => new DirectoryItem(new DirectoryInfo(d).Name, d));
+            var filesQuery = Directory.EnumerateFiles(fullPath).Select(f => new FileItem(new FileInfo(f).Name, f, new FileInfo(f).Length));
 
             if (pageSize > 0)
             {
@@ -52,10 +60,7 @@ namespace TestProject.Controllers
         }
 
         [HttpGet(AppConstants.SearchEndpoint)]
-        public IActionResult Search(
-            [FromQuery] string? query, 
-            [FromQuery] int page = 1, 
-            [FromQuery] int pageSize = AppConstants.DefaultPageSize)
+        public IActionResult Search([FromQuery] string? query = "", [FromQuery] int page = 1, [FromQuery] int pageSize = AppConstants.DefaultPageSize)
         {
             if (string.IsNullOrWhiteSpace(query))
             {
@@ -80,7 +85,7 @@ namespace TestProject.Controllers
         {
             if (file == null || file.Length == 0)
             {
-                return BadRequest("No file uploaded.");
+                return BadRequest(AppConstants.NoFileUploaded);
             }
 
             var fullPath = Path.Combine(_homeDirectory, path ?? string.Empty, file.FileName);
@@ -92,13 +97,18 @@ namespace TestProject.Controllers
                     file.CopyTo(stream);
                 }
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Unauthorized access to path: {Path}", fullPath);
+                return StatusCode(403, AppConstants.UnauthorizedAccess);
+            }
             catch (Exception ex)
             {
-                // Log the exception (ex) here if needed
-                return StatusCode(500, "Internal server error: " + ex.Message);
+                _logger.LogError(ex, "Internal server error while uploading file to path: {Path}", fullPath);
+                return StatusCode(500, AppConstants.InternalServerError + ex.Message);
             }
 
-            return Ok("File uploaded successfully.");
+            return Ok(AppConstants.FileUploadedSuccessfully);
         }
 
         [HttpDelete(AppConstants.DeleteEndpoint)]
@@ -110,21 +120,21 @@ namespace TestProject.Controllers
             {
                 if (!Directory.Exists(fullPath))
                 {
-                    return NotFound(AppConstants.DirectoryNotFoundMessage);
+                    return NotFound(AppConstants.DirectoryNotFound);
                 }
 
                 Directory.Delete(fullPath, true);
-                return Ok(AppConstants.DirectoryDeletedMessage);
+                return Ok(AppConstants.DirectoryDeleted);
             }
             else
             {
                 if (!System.IO.File.Exists(fullPath))
                 {
-                    return NotFound(AppConstants.FileNotFoundMessage);
+                    return NotFound(AppConstants.FileNotFound);
                 }
 
                 System.IO.File.Delete(fullPath);
-                return Ok(AppConstants.FileDeletedMessage);
+                return Ok(AppConstants.FileDeleted);
             }
         }
     }

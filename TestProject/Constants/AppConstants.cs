@@ -14,13 +14,16 @@ namespace TestProject.Constants
         public const string DownloadEndpoint = "download";
         public const string StatsEndpoint = "stats";
 
-        // Error Messages
-        public const string DirectoryNotFoundMessage = "Directory not found.";
-        public const string FileNotFoundMessage = "File not found.";
+        // Response Messages
+        public const string DirectoryNotFound = "Directory not found.";
+        public const string FileNotFound = "File not found.";
         public const string FileUploadedSuccessfully = "File uploaded successfully!";
-        public const string DirectoryDeletedMessage = "Directory deleted successfully.";
-        public const string FileDeletedMessage = "File deleted successfully.";
-
+        public const string DirectoryDeleted = "Directory deleted successfully.";
+        public const string FileDeleted = "File deleted successfully.";
+        public const string NoFileUploaded = "No file uploaded.";
+        public const string UnauthorizedAccess = "Unauthorized access to the specified path.";
+        public const string InternalServerError = "Internal server error: ";
+        
         // Miscellaneous
         public const string DefaultContentType = "application/octet-stream";
         public const int DefaultPageSize = 25;
