@@ -5,11 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Browser</title>
     <script src="app.js" defer></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #app {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        #search, #fileUpload {
+            margin: 10px 0;
+            padding: 10px;
+            width: calc(100% - 22px); /* Adjust for padding */
+        }
+        #upload, #searchButton {
+            padding: 10px 20px;
+            margin: 10px 0;
+        }
+        #file-browser {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        th {
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
     <div id="app">
+        <h1>File &amp; Directory Browser</h1>
         <input type="text" id="search" placeholder="Search files...">
-        <button onclick="searchFiles()">Search</button>
+        <button id="searchButton" onclick="searchFiles()">Search</button>
+        <input type="file" id="fileUpload">
+        <button id="upload">Upload</button>
         <div id="file-browser"></div>
     </div>
 </body>

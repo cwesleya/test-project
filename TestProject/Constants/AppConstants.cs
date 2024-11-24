@@ -10,6 +10,7 @@ namespace TestProject.Constants
         public const string BrowseEndpoint = "browse";
         public const string SearchEndpoint = "search";
         public const string UploadEndpoint = "upload";
+        public const string DeleteEndpoint = "delete";
         public const string DownloadEndpoint = "download";
         public const string StatsEndpoint = "stats";
 
@@ -17,6 +18,8 @@ namespace TestProject.Constants
         public const string DirectoryNotFoundMessage = "Directory not found.";
         public const string FileNotFoundMessage = "File not found.";
         public const string FileUploadedSuccessfully = "File uploaded successfully!";
+        public const string DirectoryDeletedMessage = "Directory deleted successfully.";
+        public const string FileDeletedMessage = "File deleted successfully.";
 
         // Miscellaneous
         public const string DefaultContentType = "application/octet-stream";

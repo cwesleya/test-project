@@ -76,16 +76,56 @@ namespace TestProject.Controllers
         }
 
         [HttpPost(AppConstants.UploadEndpoint)]
-        public IActionResult Upload([FromForm] IFormFile file, [FromQuery] string path = "")
+        public IActionResult Upload([FromForm] IFormFile file, [FromQuery] string? path = "")
         {
-            var fullPath = Path.Combine(_homeDirectory, path);
-
-            using (var stream = new FileStream(fullPath, FileMode.Create))
+            if (file == null || file.Length == 0)
             {
-                file.CopyTo(stream);
+                return BadRequest("No file uploaded.");
             }
-            
-            return Ok();
+
+            var fullPath = Path.Combine(_homeDirectory, path ?? string.Empty, file.FileName);
+
+            try
+            {
+                using (var stream = new FileStream(fullPath, FileMode.Create))
+                {
+                    file.CopyTo(stream);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (ex) here if needed
+                return StatusCode(500, "Internal server error: " + ex.Message);
+            }
+
+            return Ok("File uploaded successfully.");
+        }
+
+        [HttpDelete(AppConstants.DeleteEndpoint)]
+        public IActionResult Delete([FromQuery] string name, [FromQuery] bool isDirectory = false)
+        {
+            var fullPath = Path.Combine(_homeDirectory, name);
+
+            if (isDirectory)
+            {
+                if (!Directory.Exists(fullPath))
+                {
+                    return NotFound(AppConstants.DirectoryNotFoundMessage);
+                }
+
+                Directory.Delete(fullPath, true);
+                return Ok(AppConstants.DirectoryDeletedMessage);
+            }
+            else
+            {
+                if (!System.IO.File.Exists(fullPath))
+                {
+                    return NotFound(AppConstants.FileNotFoundMessage);
+                }
+
+                System.IO.File.Delete(fullPath);
+                return Ok(AppConstants.FileDeletedMessage);
+            }
         }
     }
 }
