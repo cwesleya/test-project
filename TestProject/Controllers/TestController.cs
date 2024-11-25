@@ -9,6 +9,9 @@ using TestProject.Models;
 
 namespace TestProject.Controllers
 {
+    /// <summary>
+    /// Controller for handling file and directory operations.
+    /// </summary>
     [ApiController]
     [Route(AppConstants.ApiRouteBase)]
     [Produces("application/json")]
@@ -17,6 +20,11 @@ namespace TestProject.Controllers
         private readonly string _homeDirectory;
         private readonly ILogger<TestController> _logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestController"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="logger">The logger.</param>
         public TestController(IConfiguration configuration, ILogger<TestController> logger)
         {
             var configuredHomeDirectory = configuration[AppConstants.DefaultRootDirectoryKey] ?? "/app";
@@ -24,6 +32,11 @@ namespace TestProject.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Expands the home directory path if it starts with '~'.
+        /// </summary>
+        /// <param name="path">The path to expand.</param>
+        /// <returns>The expanded path.</returns>
         private string ExpandHomeDirectory(string path)
         {
             if (path.StartsWith("~"))
@@ -34,6 +47,13 @@ namespace TestProject.Controllers
             return path;
         }
 
+        /// <summary>
+        /// Browses the specified directory.
+        /// </summary>
+        /// <param name="path">The path of the directory to browse.</param>
+        /// <param name="page">The page number for pagination.</param>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>The contents of the directory.</returns>
         [HttpGet(AppConstants.BrowseEndpoint)]
         public IActionResult Browse([FromQuery] string? path = "", [FromQuery] int page = 1, [FromQuery] int pageSize = AppConstants.DefaultPageSize)
         {
@@ -59,6 +79,13 @@ namespace TestProject.Controllers
             return Ok(new { directories, files });
         }
 
+        /// <summary>
+        /// Searches for files matching the query.
+        /// </summary>
+        /// <param name="query">The search query.</param>
+        /// <param name="page">The page number for pagination.</param>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>The search results.</returns>
         [HttpGet(AppConstants.SearchEndpoint)]
         public IActionResult Search([FromQuery] string? query = "", [FromQuery] int page = 1, [FromQuery] int pageSize = AppConstants.DefaultPageSize)
         {
@@ -80,6 +107,12 @@ namespace TestProject.Controllers
             return Ok(files);
         }
 
+        /// <summary>
+        /// Uploads a file to the specified path.
+        /// </summary>
+        /// <param name="file">The file to upload.</param>
+        /// <param name="path">The path to upload the file to.</param>
+        /// <returns>The result of the upload operation.</returns>
         [HttpPost(AppConstants.UploadEndpoint)]
         public IActionResult Upload([FromForm] IFormFile file, [FromQuery] string? path = "")
         {
@@ -111,6 +144,12 @@ namespace TestProject.Controllers
             return Ok(AppConstants.FileUploadedSuccessfully);
         }
 
+        /// <summary>
+        /// Deletes a file or directory.
+        /// </summary>
+        /// <param name="name">The name of the file or directory.</param>
+        /// <param name="isDirectory">Whether the item is a directory.</param>
+        /// <returns>The result of the delete operation.</returns>
         [HttpDelete(AppConstants.DeleteEndpoint)]
         public IActionResult Delete([FromQuery] string name, [FromQuery] bool isDirectory = false)
         {

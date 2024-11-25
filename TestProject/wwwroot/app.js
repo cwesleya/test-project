@@ -32,25 +32,23 @@ document.addEventListener('DOMContentLoaded', () => {
     addTableSortListeners();
 
     // Add event listener for file upload
-    document
-        .getElementById('upload')
-        .addEventListener('click', uploadFile);
+    document.getElementById('upload').addEventListener('click', uploadFile);
 
     // Enable/disable upload button based on file input
-    document
-        .getElementById('fileUpload')
-        .addEventListener('change', () => {
-            const fileInput = document.getElementById('fileUpload');
-            const uploadButton = document.getElementById('upload');
-            uploadButton.disabled = !fileInput.files.length;
+    document.getElementById('fileUpload').addEventListener('change', () => {
+        const fileInput = document.getElementById('fileUpload');
+        const uploadButton = document.getElementById('upload');
+        uploadButton.disabled = !fileInput.files.length;
     });
 
     // Add event listener for search input
-    document
-        .getElementById(SEARCH_INPUT_ID)
-        .addEventListener('input', () => {
-            const query = document.getElementById(SEARCH_INPUT_ID).value.trim();
-            query ? searchFiles(query) : browseDirectory();
+    document.getElementById(SEARCH_INPUT_ID).addEventListener('input', () => {
+        const query = document.getElementById(SEARCH_INPUT_ID).value.trim();
+        if (query === '') {
+            browseDirectory();
+        } else {
+            searchFiles(query);
+        }
     });
 });
 
@@ -64,7 +62,11 @@ function handleNavigation() {
     const page = parseInt(urlParams.get('page')) || 1;
     const pageSize = parseInt(urlParams.get('pageSize')) || DEFAULT_PAGE_SIZE;
 
-    query ? searchFiles(query, page, pageSize) : browseDirectory(path, page, pageSize);
+    if (query) {
+        searchFiles(query, page, pageSize);
+    } else {
+        browseDirectory(path, page, pageSize);
+    }
 }
 
 /**
@@ -92,12 +94,14 @@ function updateURL(params) {
 function browseDirectory(path = '', page = 1, pageSize = DEFAULT_PAGE_SIZE) {
     updateURL({ path, page, pageSize });
 
-    const url = `${BROWSE_ENDPOINT}?page=${page}&pageSize=${pageSize}`;
-    path = path ? `&path=${encodeURIComponent(path)}` : '';
+    let url = `${BROWSE_ENDPOINT}?page=${page}&pageSize=${pageSize}`;
+    if (path) {
+        url += `&path=${encodeURIComponent(path)}`;
+    }
 
-    fetch(url + path)
+    fetch(url)
         .then(handleResponse)
-        .then(data => displayDirectoryContents(data, page, pageSize))
+        .then(data => displayDirectoryContents(data, path, page, pageSize))
         .catch(handleError);
 }
 
@@ -114,7 +118,7 @@ function searchFiles(query, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
 
     fetch(url)
         .then(handleResponse)
-        .then(data => displaySearchResults(data, page, pageSize))
+        .then(data => displaySearchResults(data, query, page, pageSize))
         .catch(handleError);
 }
 
@@ -134,10 +138,11 @@ function handleResponse(response) {
 /**
  * Displays the contents of the directory.
  * @param {Object} data - The data containing directories and files.
+ * @param {string} path - The current path.
  * @param {number} page - The current page number.
  * @param {number} pageSize - The number of items per page.
  */
-function displayDirectoryContents(data, page, pageSize) {
+function displayDirectoryContents(data, path, page, pageSize) {
     const fileBrowser = document.getElementById(FILE_BROWSER_ID);
     fileBrowser.innerHTML = '';
 
@@ -168,12 +173,13 @@ function displayDirectoryContents(data, page, pageSize) {
     addTableSortListeners();
 
     // Add pagination controls
+    const totalItems = (data.directories ? data.directories.length : 0) + (data.files ? data.files.length : 0);
     const paginationControls = document.createElement('div');
     paginationControls.className = 'pagination-controls';
     paginationControls.innerHTML = `
         <button onclick="browseDirectory('${path}', ${page - 1}, ${pageSize})" ${page === 1 ? 'disabled' : ''}>Previous</button>
         <span>Page ${page}</span>
-        <button onclick="browseDirectory('${path}', ${page + 1}, ${pageSize})">Next</button>
+        <button onclick="browseDirectory('${path}', ${page + 1}, ${pageSize})" ${totalItems < pageSize ? 'disabled' : ''}>Next</button>
     `;
     fileBrowser.appendChild(paginationControls);
 }
@@ -181,10 +187,11 @@ function displayDirectoryContents(data, page, pageSize) {
 /**
  * Displays the search results.
  * @param {Array<Object>} data - The data containing the search results.
+ * @param {string} query - The search query.
  * @param {number} page - The current page number.
  * @param {number} pageSize - The number of items per page.
  */
-function displaySearchResults(data, page, pageSize) {
+function displaySearchResults(data, query, page, pageSize) {
     const fileBrowser = document.getElementById(FILE_BROWSER_ID);
     fileBrowser.innerHTML = '';
 
@@ -204,12 +211,13 @@ function displaySearchResults(data, page, pageSize) {
     addTableSortListeners();
 
     // Add pagination controls
+    const totalItems = data.length;
     const paginationControls = document.createElement('div');
     paginationControls.className = 'pagination-controls';
     paginationControls.innerHTML = `
         <button onclick="searchFiles('${query}', ${page - 1}, ${pageSize})" ${page === 1 ? 'disabled' : ''}>Previous</button>
         <span>Page ${page}</span>
-        <button onclick="searchFiles('${query}', ${page + 1}, ${pageSize})">Next</button>
+        <button onclick="searchFiles('${query}', ${page + 1}, ${pageSize})" ${totalItems < pageSize ? 'disabled' : ''}>Next</button>
     `;
     fileBrowser.appendChild(paginationControls);
 }

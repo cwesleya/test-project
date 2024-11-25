@@ -7,10 +7,10 @@ EXPOSE 443
 # Use the official ASP.NET Core build image as a parent image
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
-COPY ["TestProject/TestProject.csproj", "TestProject/"]
-RUN dotnet restore "TestProject/TestProject.csproj"
+COPY ["TestProject.csproj", "."]
+RUN dotnet restore "TestProject.csproj"
 COPY . .
-WORKDIR "/src/TestProject"
+WORKDIR "/src"
 RUN dotnet build "TestProject.csproj" -c Release -o /app/build
 
 # Publish the application
@@ -23,8 +23,14 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 # Set the entrypoint to use the specified launch profile
-ENTRYPOINT ["dotnet", "run", "--launch-profile", "Development"]
+ENTRYPOINT ["dotnet", "TestProject.dll"]
 
+# Example usage:
+# docker build -t testproject .
+# docker run -p 8080:80 testproject
+# Example usage:
+# docker build -t testproject .
+# docker run -p 8080:80 testproject
 # Example usage:
 # docker build -t testproject .
 # docker run -p 8080:80 testproject
