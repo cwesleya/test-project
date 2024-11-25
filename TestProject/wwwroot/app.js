@@ -13,7 +13,7 @@ const DELETE_ENDPOINT = `${API_BASE_URL}/delete`;
 const UPLOAD_ENDPOINT = `${API_BASE_URL}/upload`;
 const FILE_BROWSER_ID = 'file-browser';
 const SEARCH_INPUT_ID = 'search';
-const DEFAULT_PAGE_SIZE = 25;
+const DEFAULT_PAGE_SIZE = 5;
 const SORT_ASC = 'asc';
 const SORT_DESC = 'desc';
 
@@ -35,6 +35,23 @@ document.addEventListener('DOMContentLoaded', () => {
     document
         .getElementById('upload')
         .addEventListener('click', uploadFile);
+
+    // Enable/disable upload button based on file input
+    document
+        .getElementById('fileUpload')
+        .addEventListener('change', () => {
+            const fileInput = document.getElementById('fileUpload');
+            const uploadButton = document.getElementById('upload');
+            uploadButton.disabled = !fileInput.files.length;
+    });
+
+    // Add event listener for search input
+    document
+        .getElementById(SEARCH_INPUT_ID)
+        .addEventListener('input', () => {
+            const query = document.getElementById(SEARCH_INPUT_ID).value.trim();
+            query ? searchFiles(query) : browseDirectory();
+    });
 });
 
 /**
@@ -47,11 +64,7 @@ function handleNavigation() {
     const page = parseInt(urlParams.get('page')) || 1;
     const pageSize = parseInt(urlParams.get('pageSize')) || DEFAULT_PAGE_SIZE;
 
-    if (query) {
-        searchFiles(query, page, pageSize);
-    } else {
-        browseDirectory(path, page, pageSize);
-    }
+    query ? searchFiles(query, page, pageSize) : browseDirectory(path, page, pageSize);
 }
 
 /**
@@ -79,14 +92,12 @@ function updateURL(params) {
 function browseDirectory(path = '', page = 1, pageSize = DEFAULT_PAGE_SIZE) {
     updateURL({ path, page, pageSize });
 
-    let url = `${BROWSE_ENDPOINT}?page=${page}&pageSize=${pageSize}`;
-    if (path) {
-        url += `&path=${encodeURIComponent(path)}`;
-    }
+    const url = `${BROWSE_ENDPOINT}?page=${page}&pageSize=${pageSize}`;
+    path = path ? `&path=${encodeURIComponent(path)}` : '';
 
-    fetch(url)
+    fetch(url + path)
         .then(handleResponse)
-        .then(displayDirectoryContents)
+        .then(data => displayDirectoryContents(data, page, pageSize))
         .catch(handleError);
 }
 
@@ -97,19 +108,14 @@ function browseDirectory(path = '', page = 1, pageSize = DEFAULT_PAGE_SIZE) {
  * @param {number} [pageSize=DEFAULT_PAGE_SIZE] - The number of items per page.
  */
 function searchFiles(query, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
-    if (query) {
-        updateURL({ query, page, pageSize });
+    updateURL({ query, page, pageSize });
 
-        let url = `${SEARCH_ENDPOINT}?query=${encodeURIComponent(query)}&page=${page}&pageSize=${pageSize}`;
+    let url = `${SEARCH_ENDPOINT}?query=${encodeURIComponent(query)}&page=${page}&pageSize=${pageSize}`;
 
-        fetch(url)
-            .then(handleResponse)
-            .then(displaySearchResults)
-            .catch(handleError);
-    } else {
-        updateURL({ page, pageSize });
-        browseDirectory('', page, pageSize);
-    }
+    fetch(url)
+        .then(handleResponse)
+        .then(data => displaySearchResults(data, page, pageSize))
+        .catch(handleError);
 }
 
 /**
@@ -128,8 +134,10 @@ function handleResponse(response) {
 /**
  * Displays the contents of the directory.
  * @param {Object} data - The data containing directories and files.
+ * @param {number} page - The current page number.
+ * @param {number} pageSize - The number of items per page.
  */
-function displayDirectoryContents(data) {
+function displayDirectoryContents(data, page, pageSize) {
     const fileBrowser = document.getElementById(FILE_BROWSER_ID);
     fileBrowser.innerHTML = '';
 
@@ -158,13 +166,25 @@ function displayDirectoryContents(data) {
 
     fileBrowser.appendChild(table);
     addTableSortListeners();
+
+    // Add pagination controls
+    const paginationControls = document.createElement('div');
+    paginationControls.className = 'pagination-controls';
+    paginationControls.innerHTML = `
+        <button onclick="browseDirectory('${path}', ${page - 1}, ${pageSize})" ${page === 1 ? 'disabled' : ''}>Previous</button>
+        <span>Page ${page}</span>
+        <button onclick="browseDirectory('${path}', ${page + 1}, ${pageSize})">Next</button>
+    `;
+    fileBrowser.appendChild(paginationControls);
 }
 
 /**
  * Displays the search results.
  * @param {Array<Object>} data - The data containing the search results.
+ * @param {number} page - The current page number.
+ * @param {number} pageSize - The number of items per page.
  */
-function displaySearchResults(data) {
+function displaySearchResults(data, page, pageSize) {
     const fileBrowser = document.getElementById(FILE_BROWSER_ID);
     fileBrowser.innerHTML = '';
 
@@ -182,6 +202,16 @@ function displaySearchResults(data) {
 
     fileBrowser.appendChild(table);
     addTableSortListeners();
+
+    // Add pagination controls
+    const paginationControls = document.createElement('div');
+    paginationControls.className = 'pagination-controls';
+    paginationControls.innerHTML = `
+        <button onclick="searchFiles('${query}', ${page - 1}, ${pageSize})" ${page === 1 ? 'disabled' : ''}>Previous</button>
+        <span>Page ${page}</span>
+        <button onclick="searchFiles('${query}', ${page + 1}, ${pageSize})">Next</button>
+    `;
+    fileBrowser.appendChild(paginationControls);
 }
 
 /**
@@ -238,13 +268,21 @@ function uploadFile() {
     const formData = new FormData();
     formData.append('file', file);
 
-    fetch(UPLOAD_ENDPOINT + (path ? `?path=${encodeURIComponent(path)}` : ''), {
+    let url = UPLOAD_ENDPOINT;
+    if (path) {
+        url += `?path=${encodeURIComponent(path)}`;
+    }
+
+    fetch(url, {
         method: 'POST',
         body: formData,
     })
         .then(response => {
             if (response.ok) {
                 alert('File uploaded successfully!');
+                // Clear the file input and disable the upload button
+                fileInput.value = '';
+                document.getElementById('upload').disabled = true;
                 handleNavigation();
             } else {
                 alert('Failed to upload file.');
@@ -255,12 +293,6 @@ function uploadFile() {
             alert('An error occurred during the upload.');
         });
 }
-
-// Event listener for search input
-document.getElementById(SEARCH_INPUT_ID).addEventListener('input', () => {
-    const query = document.getElementById(SEARCH_INPUT_ID).value.trim();
-    searchFiles(query);
-});
 
 /**
  * Adds event listeners to table headers for sorting.
